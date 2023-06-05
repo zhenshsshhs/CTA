@@ -17,15 +17,15 @@ class MyData(Dataset):
         table_name = dataset.loc[idx]['table_name']
         column_index = dataset.loc[idx]['column_index']
         label = dataset.loc[idx]['label']
-        # if dataset.shape[1] == 3:
-        #     label = dataset.loc[idx]['label']
-        #     return table_name, column_index, label
-        # return table_name, column_index
-        table_dir = "./data/Tables"
-        table_path = os.path.join(table_dir, table_name)
-        table_df = pd.read_json(table_path, compression='gzip', lines=True)
-        column_data = table_df[column_index]
-        return column_data, label
+        if dataset.shape[1] == 3:
+            label = dataset.loc[idx]['label']
+            return table_name, column_index, label
+        return table_name, column_index
+        # table_dir = "./data/Tables"
+        # table_path = os.path.join(table_dir, table_name)
+        # table_df = pd.read_json(table_path, compression='gzip', lines=True)
+        # column_data = table_df[column_index]
+        # return column_data, label
 
     def __len__(self):
         return pd.read_csv(self.file_path).shape[0]
