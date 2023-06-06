@@ -3,6 +3,8 @@ import read_data
 
 from torch.utils.data import DataLoader
 
+from transformers import BertTokenizer, BertModel
+
 
 # 输入：主语列的信息和目标列的信息
 # 输出：各个类的概率

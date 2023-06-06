@@ -7,9 +7,41 @@ import re
 
 import pandas as pd
 import ftfy
+import spacy
 from autocorrect import Speller
 from joblib import Parallel, delayed
 import multiprocessing
+
+
+def is_numeric(doc):
+    for ent in doc.ents:
+        # print(ent.text, ent.label_)
+        tag = ent.label_
+        if tag in ['DATE', 'TIME', 'PERCENT', 'MONEY', 'QUANTITY', 'ORDINAL', 'CARDINAL']:
+            return True
+        else:
+            return False
+
+
+def predict_subject(table_data):
+    # print(table_data)
+    nlp = spacy.load("en_core_web_sm")
+    subject_index = 0
+    for col in range(table_data.shape[1]):
+        literal = 0
+        named_entity = 0
+        for row in range(table_data.shape[0]):
+            cell_value = table_data.loc[row][col]
+            doc = nlp(cell_value)
+            if is_numeric(doc):
+                literal += 1
+            else:
+                named_entity += 1
+        # print("na:{}, li:{}".format(named_entity, literal))
+        if named_entity > literal:
+            subject_index = col
+            break
+    return subject_index
 
 
 def preprocess(table_name):
@@ -21,15 +53,18 @@ def preprocess(table_name):
     table_df = table_df.fillna("")
     table_df = table_df.applymap(lambda x: str(x))
     # 删除特殊字符
-    table_df = table_df.applymap(lambda x: re.sub('[!?✓¿|↠☆×½¼¶Þæ»]', '', x))
+    table_df = table_df.applymap(lambda x: re.sub('[!?✓¿|↠☆×½¼¶Þæ»#]', '', x))
     # ftfy修复编码问题
     clean_df = table_df.applymap(lambda x: ftfy.fix_text(x))
     # autocorrect修复拼写错误
     correct = Speller()
     correct_df = clean_df.applymap(lambda x: correct.autocorrect_sentence(x))
     # 保存表格
-    process_table_path = os.path.join(process_table_dir, table_name)
-    correct_df.to_json(process_table_path, compression='gzip', orient='records', lines=True)
+    # process_table_path = os.path.join(process_table_dir, table_name)
+    # correct_df.to_json(process_table_path, compression='gzip', orient='records', lines=True)
+
+    subject_column = predict_subject(correct_df)
+    print(subject_column)
 
     # print(table_df)
     # print(correct_df)
@@ -43,12 +78,15 @@ def preprocess(table_name):
 
 
 if __name__ == '__main__':
-    img_path = os.listdir('../data/Tables')
-    num_cores = 8
-    # for idx in range(len(img_path)):
-    #     table_name = img_path[idx]
+    table_dir = os.listdir('../data/Tables')
+    # for idx in range(len(table_dir)):
+    #     table_name = table_dir[idx]
     #     preprocess(table_name)
     #     print(table_name)
 
-    Parallel(n_jobs=num_cores)(delayed(preprocess)(img_path[idx]) for idx in range(len(img_path)))
+    preprocess(table_dir[0])
+
+    # 并行化预处理
+    # num_cores = 8
+    # Parallel(n_jobs=num_cores)(delayed(preprocess)(table_dir[idx]) for idx in range(len(table_dir)))
 
