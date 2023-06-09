@@ -1,6 +1,4 @@
 
-# 数据预处理
-# 使用ftfy修复编码问题
 import multiprocessing
 import os
 import re
@@ -13,40 +11,17 @@ from joblib import Parallel, delayed
 import multiprocessing
 
 
-def is_numeric(doc):
-    for ent in doc.ents:
-        # print(ent.text, ent.label_)
-        tag = ent.label_
-        if tag in ['DATE', 'TIME', 'PERCENT', 'MONEY', 'QUANTITY', 'ORDINAL', 'CARDINAL']:
-            return True
-        else:
-            return False
+'''
+数据预处理
+将训练集处理成模型对应的输入和输出，并存在文件中
+table_name, subject_data, target_data, label
+'''
+
+table_dir = "../data/Tables"
 
 
-def predict_subject(table_data):
-    # print(table_data)
-    nlp = spacy.load("en_core_web_sm")
-    subject_index = 0
-    for col in range(table_data.shape[1]):
-        literal = 0
-        named_entity = 0
-        for row in range(table_data.shape[0]):
-            cell_value = table_data.loc[row][col]
-            doc = nlp(cell_value)
-            if is_numeric(doc):
-                literal += 1
-            else:
-                named_entity += 1
-        # print("na:{}, li:{}".format(named_entity, literal))
-        if named_entity > literal:
-            subject_index = col
-            break
-    return subject_index
-
-
-def preprocess(table_name):
+def fix_data(table_name):
     print(table_name)
-    table_dir = "../data/Tables"
     process_table_dir = "../data/PreprocessTables"
     table_path = os.path.join(table_dir, table_name)
     table_df = pd.read_json(table_path, compression='gzip', lines=True)
@@ -63,8 +38,6 @@ def preprocess(table_name):
     # process_table_path = os.path.join(process_table_dir, table_name)
     # correct_df.to_json(process_table_path, compression='gzip', orient='records', lines=True)
 
-    subject_column = predict_subject(correct_df)
-    print(subject_column)
 
     # print(table_df)
     # print(correct_df)
@@ -78,15 +51,15 @@ def preprocess(table_name):
 
 
 if __name__ == '__main__':
-    table_dir = os.listdir('../data/Tables')
-    # for idx in range(len(table_dir)):
-    #     table_name = table_dir[idx]
-    #     preprocess(table_name)
-    #     print(table_name)
+    table_list = os.listdir(table_dir)
+    print(len(table_list))
+    print(table_list[0])
+    train_annotations = pd.read_csv('../data/SCH-Datasets/train.csv')
+    for row in range(train_annotations.shape[0]):
+        print(train_annotations.loc[row])
 
-    preprocess(table_dir[0])
-
-    # 并行化预处理
+    # 并行化主语列预测
     # num_cores = 8
-    # Parallel(n_jobs=num_cores)(delayed(preprocess)(table_dir[idx]) for idx in range(len(table_dir)))
+    # Parallel(n_jobs=num_cores)(delayed(predict_subject)(table_list[idx], idx) for idx in range(len(table_list)))
+
 
