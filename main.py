@@ -1,15 +1,32 @@
+from preprocess import preprocessing
 import read_data
-from torch.utils.data import DataLoader
 
+from torch.utils.data import DataLoader
+from transformers import BertTokenizer, BertModel
+
+
+# 输入：从表中提取出的特征向量
+# 输出：各个类的置信度
+# 多类的分类任务
 
 if __name__ == '__main__':
-    root_dir = "./data/SCH-Datasets"
-    train_file = "train.csv"
-    train_dataset = read_data.MyData(root_dir, train_file)
-    train_loader = DataLoader(dataset=train_dataset)
+    # root_dir = "./data/DBP-Datasets"
+    # train_file = "train.csv"
+    # train_dataset = read_data.MyData(root_dir, train_file)
     # for idx in range(train_dataset.__len__()):
     #     print(train_dataset[idx])
-    # for data in train_loader:
-    #     print(data)
-    print(train_dataset[0])
+        # preprocessing.preprocess(train_dataset[idx])
+
+    tokenizer = BertTokenizer.from_pretrained('bert-base-multilingual-cased')
+    model = BertModel.from_pretrained("bert-base-multilingual-cased")
+    text = "Replace me by any text you'd like."
+    encoded_input = tokenizer(text, return_tensors='pt')
+    output = model(**encoded_input)
+    print(output)
+
+
+
+
+
+
 
