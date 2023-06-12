@@ -20,46 +20,54 @@ table_name, subject_data, target_data, label
 table_dir = "../data/Tables"
 
 
-def fix_data(table_name):
-    print(table_name)
-    process_table_dir = "../data/PreprocessTables"
+def clean_data(table_name, column_index, label, row):
+    print(table_name, row)
     table_path = os.path.join(table_dir, table_name)
     table_df = pd.read_json(table_path, compression='gzip', lines=True)
-    table_df = table_df.fillna("")
-    table_df = table_df.applymap(lambda x: str(x))
+    # 获取目标列的数据
+    column_df = table_df[column_index]
+    column_df = column_df.fillna(' ')
+    column_df = column_df.map(lambda x: str(x))
     # 删除特殊字符
-    table_df = table_df.applymap(lambda x: re.sub('[!?✓¿|↠☆×½¼¶Þæ»#]', '', x))
+    column_df = column_df.map(lambda x: re.sub('[!?✓¿|↠☆×½¼¶Þæ»#\"\'\t\n\r,，\[\]{}]', '', x))
     # ftfy修复编码问题
-    clean_df = table_df.applymap(lambda x: ftfy.fix_text(x))
+    column_df = column_df.map(lambda x: ftfy.fix_text(x))
     # autocorrect修复拼写错误
     correct = Speller()
-    correct_df = clean_df.applymap(lambda x: correct.autocorrect_sentence(x))
-    # 保存表格
-    # process_table_path = os.path.join(process_table_dir, table_name)
-    # correct_df.to_json(process_table_path, compression='gzip', orient='records', lines=True)
+    column_df = column_df.map(lambda x: correct.autocorrect_sentence(x))
+    # 将一列中的单元格值拼接起来
+    column_data = ' | '.join(column_df.tolist())
+    column_data = column_data[:600]
+    column_data ="\"" + column_data + "\""
 
-
-    # print(table_df)
-    # print(correct_df)
-    # for row in range(table_df.shape[0]):
-    #     for col in range(table_df.shape[1]):
-    #         table_value = table_df.loc[row][col]
-    #         clean_value = clean_df.loc[row][col]
-    #         correct_value = correct_df.loc[row][col]
-    #         if table_value != clean_value and clean_value != correct_value:
-    #             print("table_value: {}, clean_value: {}, correct_value: {}".format(table_value, clean_value, correct_value))
+    # save
+    data = pd.DataFrame({'table_name': [table_name], 'column_index': [column_index], 'column_data': [column_data], 'label': [label]})
+    data.to_csv('../data/SCH-Datasets/preprocess-train.csv', mode='a', index=0, header=0)
+    # return column_data
 
 
 if __name__ == '__main__':
     table_list = os.listdir(table_dir)
-    print(len(table_list))
-    print(table_list[0])
+    # print(len(table_list))
+    # print(table_list[0])
     train_annotations = pd.read_csv('../data/SCH-Datasets/train.csv')
-    for row in range(train_annotations.shape[0]):
-        print(train_annotations.loc[row])
+    # for row in range(train_annotations.shape[0]):
+    #     table_name = train_annotations.loc[row]["table_name"]
+    #     column_index = train_annotations.loc[row]["column_index"]
+    #     label = train_annotations.loc[row]["label"]
+    #     column_data = clean_data(table_name, column_index)
+    #     data = pd.DataFrame({'table_name': [table_name], 'column_data': [column_data], 'label': [label]})
+    #     data.to_csv('../data/SCH-Datasets/preprocess-train.csv', mode='a', index=0, header=0)
+    #     print(row)
+    #     print(table_name, column_index, column_data, label)
 
-    # 并行化主语列预测
-    # num_cores = 8
-    # Parallel(n_jobs=num_cores)(delayed(predict_subject)(table_list[idx], idx) for idx in range(len(table_list)))
+
+
+    # 并行化
+    num_cores = 10
+    Parallel(n_jobs=num_cores)(delayed(clean_data)(train_annotations.loc[row]["table_name"],
+                                                   train_annotations.loc[row]["column_index"],
+                                                   train_annotations.loc[row]["label"], row)
+                               for row in range(train_annotations.shape[0]))
 
 

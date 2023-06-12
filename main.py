@@ -2,7 +2,7 @@ from preprocess import preprocessing
 import read_data
 
 from torch.utils.data import DataLoader
-from transformers import BertTokenizer, BertModel
+from transformers import BertTokenizer, BertModel, AutoModelForSequenceClassification
 
 
 # 输入：从表中提取出的特征向量
@@ -22,7 +22,8 @@ if __name__ == '__main__':
     text = "Replace me by any text you'd like."
     encoded_input = tokenizer(text, return_tensors='pt')
     output = model(**encoded_input)
-    print(output)
+    print(encoded_input)
+    print(output.last_hidden_state.shape)
 
 
 
