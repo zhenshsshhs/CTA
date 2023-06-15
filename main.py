@@ -1,5 +1,5 @@
 from preprocess import preprocessing
-import read_data
+import load_data
 
 from torch.utils.data import DataLoader
 from transformers import BertTokenizer, BertModel, AutoModelForSequenceClassification
